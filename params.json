@@ -1,6 +1,6 @@
 {
   "name": "Report",
   "tagline": "",
-  "body": "Test\r\n\r\n[Previous log](http://fcostantini.github.io/QuickFuzz/)",
+  "body": "# Final report\r\n\r\n[Previous logs](http://fcostantini.github.io/QuickFuzz/)\r\n\r\n## Motivation\r\n\r\nQuickFuzz can generate random code from various programming languages. Obviously, most of the time this code won't be syntactically or semantically valid. One of the things random code can't account for is variable coherence, i.e., using variables that are already defined.  \r\nMy project was about partially solving this problem, and automating the solution.  \r\n\r\n## Main work\r\n\r\nWe define a class (Fixable) that will take some language construction and will fix it in a way that adds (some) variable coherence.\r\n\r\n    data StV a = StV {vars :: [a]} deriving Show  \r\n\r\n    type VState a b = StateT (StV a) Gen b  \r\n\r\n    class Fixable a b where  \r\n      fix :: b -> VState a b  \r\n\r\nThe state is simply a list of variable identifiers, and we use a monad transformer to wrap the state around Gen. Basically we will be handling the state transformer, and at the end of the fix process, we must evaluate the state.  \r\n\r\nWe derive instances for this class using Template Haskell.  \r\n\r\n\r\n\r\n## Results\r\n\r\n## Problems\r\n\r\n## Conclusion",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }

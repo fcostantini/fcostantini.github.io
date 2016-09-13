@@ -35,9 +35,42 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-        <p>Test</p>
+        <h1>
+<a id="final-report" class="anchor" href="#final-report" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Final report</h1>
 
-<p><a href="http://fcostantini.github.io/QuickFuzz/">Previous log</a></p>
+<p><a href="http://fcostantini.github.io/QuickFuzz/">Previous logs</a></p>
+
+<h2>
+<a id="motivation" class="anchor" href="#motivation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Motivation</h2>
+
+<p>QuickFuzz can generate random code from various programming languages. Obviously, most of the time this code won't be syntactically or semantically valid. One of the things random code can't account for is variable coherence, i.e., using variables that are already defined.<br>
+My project was about partially solving this problem, and automating the solution.  </p>
+
+<h2>
+<a id="main-work" class="anchor" href="#main-work" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Main work</h2>
+
+<p>We define a class (Fixable) that will take some language construction and will fix it in a way that adds (some) variable coherence.</p>
+
+<pre><code>data StV a = StV {vars :: [a]} deriving Show  
+
+type VState a b = StateT (StV a) Gen b  
+
+class Fixable a b where  
+  fix :: b -&gt; VState a b  
+</code></pre>
+
+<p>The state is simply a list of variable identifiers, and we use a monad transformer to wrap the state around Gen. Basically we will be handling the state transformer, and at the end of the fix process, we must evaluate the state.  </p>
+
+<p>We derive instances for this class using Template Haskell.  </p>
+
+<h2>
+<a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h2>
+
+<h2>
+<a id="problems" class="anchor" href="#problems" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Problems</h2>
+
+<h2>
+<a id="conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Conclusion</h2>
       </section>
 
     </div>
