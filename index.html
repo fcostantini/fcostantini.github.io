@@ -61,7 +61,41 @@ class Fixable a b where
 
 <p>The state is simply a list of variable identifiers, and we use a monad transformer to wrap the state around Gen. Basically we will be handling the state transformer, and at the end of the fix process, we must evaluate the state.  </p>
 
-<p>We derive instances for this class using Template Haskell.  </p>
+<p>We derive instances for this class using Template Haskell. The process for this is simple: we need to specify the type representing identifiers (could be simply String or a wrapper type), a list of constructors which will be variables "calls" (something like Var with an identifier), another list of constructors representing assignments (like a direct assignment or a for) and finally the type for which we want to derive the instance, lets call it T.  </p>
+
+<p>When we have all this, we can extract some information from these types to form the skeleton of our instance (like class restrictions on the type parameters). Then, the interesting bit is building the body of fix. To do this, we start travelling through the different constructors of T, and consider 3 different situations (say C is the current constructor of T being analyzed):  </p>
+
+<ul>
+<li>if C is one of the constructors representing variables, we must make sure its identifier exists in the current state. If this is not the case, we have 2 situations: the state is empty, in which case we change the variable expression for a different one (it could be a constant, or simply an arbitrary expression), or we have some ids in the state, and then we take one of them randomly to replace the current one.<br>
+</li>
+<li>if C is an assignment constructor, we must apply fix to the expression(s) that will be assigned, and then we add the assignment id to the state (this has some flaws, more info below).<br>
+</li>
+<li>if C is not in either of the lists, we just apply fix to its parameters.<br>
+</li>
+</ul>
+
+<p>We also need to define some functions to make it work. These functions are somewhat difficult to derive automatically because sometimes the specified constructors are not so straightforward (actually pop and push are pretty easy):  </p>
+
+<ul>
+<li>getVId: extracts the identifier from a Variable expression.<br>
+</li>
+<li>getAId: extracts the identifier from an Assignment expression.</li>
+<li>printST: prints the state (not really necessary, but useful for debugging).<br>
+</li>
+<li>popId: deletes an identifier from the state.<br>
+</li>
+<li>pushId: adds an identifier to the state.<br>
+</li>
+<li>genCons: the expression to put in when the state is empty.<br>
+</li>
+<li>genVar: generates a Variable expression using an identifier from the state.<br>
+</li>
+</ul>
+
+<p>Using Megadeth, we can get the instance derivation for an entire AST using just one line, since Megadeth can resolve type dependencies and will produce the instance for every type.  </p>
+
+<pre><code>$(mkGranFix ''Ident ['Var] ['Assign, 'For] ''Module)  
+</code></pre>
 
 <h2>
 <a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h2>
