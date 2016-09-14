@@ -94,11 +94,21 @@ class Fixable a b where
 
 <p>Using Megadeth, we can get the instance derivation for an entire AST using just one line, since Megadeth can resolve type dependencies and will produce the instance for every type.  </p>
 
-<pre><code>$(mkGranFix ''Ident ['Var] ['Assign, 'For] ''Module)  
+<pre><code>$(mkGranFix ''Ident ['Var] ['Assign, 'For] ''Module)
+</code></pre>
+
+<p>After this, we must apply the fix somewhere. Currently this is manually done inside the Arbitrary instance for the top level type in the AST, using evalStateT to get rid of the state:  </p>
+
+<pre><code>instance Arbitrary T where  
+    arbitrary = do a &lt;- sized go  
+                   evalStateT (fix a) (initV :: StV Id)  
+                where go n = ...  
 </code></pre>
 
 <h2>
 <a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h2>
+
+<p>We can test this with a Python example:  </p>
 
 <h2>
 <a id="problems" class="anchor" href="#problems" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Problems</h2>
