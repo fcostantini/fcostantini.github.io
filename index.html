@@ -45,18 +45,17 @@
 
 <p>QuickFuzz can generate random code from various programming languages. Obviously, most of the time this code won't be syntactically or semantically valid. One of the things random code can't account for is variable coherence, i.e., using variables that are already defined. We can see this with this Python example (generated with more probability on assignments for illustration):  </p>
 
-<pre><code>hiy = vu  
-jdu = ag  
-rpa = kk
-zcx = 2
-vp = f  
-np = 2.1850528035871353  
-b = 1 &gt;&gt; 0  
-zau = a  
-meg = -18.39505230244595 == p  
-ize = le  
-no = -2  
-</code></pre>
+<div class="highlight highlight-source-python"><pre>hiy <span class="pl-k">=</span> vu  
+jdu <span class="pl-k">=</span> ag  
+rpa <span class="pl-k">=</span> kk
+zcx <span class="pl-k">=</span> <span class="pl-c1">2</span>
+vp <span class="pl-k">=</span> f  
+np <span class="pl-k">=</span> <span class="pl-c1">2.1850528035871353</span>  
+b <span class="pl-k">=</span> <span class="pl-c1">1</span> <span class="pl-k">&gt;&gt;</span> <span class="pl-c1">0</span>  
+zau <span class="pl-k">=</span> a  
+meg <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">18.39505230244595</span> <span class="pl-k">==</span> p  
+ize <span class="pl-k">=</span> le  
+no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2</span>  </pre></div>
 
 <p>My project was about partially solving this problem, and automating the solution.  </p>
 
@@ -65,13 +64,12 @@ no = -2
 
 <p>We define a class (Fixable) that will take some language construction and will fix it in a way that adds (some) variable coherence.</p>
 
-<pre><code>data StV a = StV {vars :: [a]} deriving Show  
+<div class="highlight highlight-source-haskell"><pre><span class="pl-k">data</span> <span class="pl-en">StV</span> <span class="pl-smi">a</span> <span class="pl-k">=</span> <span class="pl-ent">StV</span> <span class="pl-k">{</span><span class="pl-e">vars</span> <span class="pl-k">::</span> [<span class="pl-smi">a</span>]<span class="pl-k">}</span> <span class="pl-k">deriving</span> <span class="pl-e">Show</span>  
 
-type VState a b = StateT (StV a) Gen b  
+<span class="pl-k">type</span> <span class="pl-en">VState</span> <span class="pl-smi">a</span> <span class="pl-smi">b</span> <span class="pl-k">=</span> <span class="pl-en">StateT</span> (<span class="pl-en">StV</span> <span class="pl-smi">a</span>) <span class="pl-en">Gen</span> <span class="pl-smi">b</span>  
 
-class Fixable a b where  
-  fix :: b -&gt; VState a b  
-</code></pre>
+<span class="pl-k">class</span> <span class="pl-en">Fixable</span> <span class="pl-smi">a</span> <span class="pl-smi">b</span> <span class="pl-k">where</span>  
+  <span class="pl-en">fix</span> <span class="pl-k">::</span> <span class="pl-smi">b</span> <span class="pl-k">-&gt;</span> <span class="pl-en">VState</span> <span class="pl-smi">a</span> <span class="pl-smi">b</span>  </pre></div>
 
 <p>The state is simply a list of variable identifiers, and we use a monad transformer to wrap the state around Gen. Basically we will be handling the state transformer, and at the end of the fix process, we must evaluate the state.  </p>
 
@@ -108,34 +106,31 @@ class Fixable a b where
 
 <p>Using Megadeth, we can get the instance derivation for an entire AST using just one line, since Megadeth can resolve type dependencies and will produce the instance for every type.  </p>
 
-<pre><code>$(mkGranFix ''Ident ['Var] ['Assign, 'For] ''Module)
-</code></pre>
+<div class="highlight highlight-source-haskell"><pre>$(mkGranFix ''<span class="pl-ent">Ident</span> ['<span class="pl-ent">Var</span>] ['<span class="pl-ent">Assign</span>, '<span class="pl-ent">For</span>] ''<span class="pl-ent">Module</span>)</pre></div>
 
 <p>After this, we must apply the fix somewhere. Currently this is manually done inside the Arbitrary instance for the top level type in the AST, using evalStateT to get rid of the state:  </p>
 
-<pre><code>instance Arbitrary T where  
-    arbitrary = do a &lt;- sized go  
-                   evalStateT (fix a) (initV :: StV Id)  
-                where go n = ...  
-</code></pre>
+<div class="highlight highlight-source-haskell"><pre><span class="pl-k">instance</span> <span class="pl-en">Arbitrary</span> <span class="pl-en">T</span> <span class="pl-k">where</span>  
+    arbitrary = <span class="pl-k">do</span> a &lt;- sized go  
+                   evalStateT (fix a) (initV <span class="pl-k">::</span> <span class="pl-en">StV</span> <span class="pl-en">Id</span>)  
+                <span class="pl-k">where</span> go n = ...  </pre></div>
 
 <h2>
 <a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h2>
 
 <p>We can test this with our previous Python example. After applying the fix, we get the following:</p>
 
-<pre><code>hiy = 3  
-jdu = hiy  
-rpa = jdu  
-zcz = 2  
-vp = zcz  
-np = 2.1850528035871353   
-b = 1 &gt;&gt; 0  
-zau = jdu  
-meg = -18.39505230244595 == zcz  
-ize = f  
-no = -2  
-</code></pre>
+<div class="highlight highlight-source-python"><pre>hiy <span class="pl-k">=</span> <span class="pl-c1">3</span>  
+jdu <span class="pl-k">=</span> hiy  
+rpa <span class="pl-k">=</span> jdu  
+zcz <span class="pl-k">=</span> <span class="pl-c1">2</span>  
+vp <span class="pl-k">=</span> zcz  
+np <span class="pl-k">=</span> <span class="pl-c1">2.1850528035871353</span>   
+b <span class="pl-k">=</span> <span class="pl-c1">1</span> <span class="pl-k">&gt;&gt;</span> <span class="pl-c1">0</span>  
+zau <span class="pl-k">=</span> jdu  
+meg <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">18.39505230244595</span> <span class="pl-k">==</span> zcz  
+ize <span class="pl-k">=</span> vp  
+no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2</span>  </pre></div>
 
 <p>We can see that now we reuse previously defined variables in new assignments.<br>
 We ran QuickFuzz over different implementations of Bash, Python, Lua and JavaScript. So far we have found:</p>
