@@ -43,7 +43,7 @@
 <h2>
 <a id="motivation" class="anchor" href="#motivation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Motivation</h2>
 
-<p>QuickFuzz can generate random code from various programming languages. Obviously, most of the time this code won't be syntactically or semantically valid. One of the things random code can't account for is variable coherence, i.e., using variables that are already defined. We can see this with this Python example (generated with more probability on assignments for illustration):  </p>
+<p>QuickFuzz can generate random code from various programming languages. Obviously, most of the time this code won't be syntactically or semantically valid. One of the things random code can't account for is variable coherence, i.e., when we use a variable, it must be defined (or declared) before. We can see this with this Python example (generated with more probability on assignments for illustration):  </p>
 
 <div class="highlight highlight-source-python"><pre>hiy <span class="pl-k">=</span> vu  
 jdu <span class="pl-k">=</span> ag  
@@ -57,10 +57,25 @@ meg <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">1
 ize <span class="pl-k">=</span> le  
 no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2</span>  </pre></div>
 
-<p>My project was about partially solving this problem, and automating the solution.  </p>
+<p>My project was about partially solving this problem, and automating the solution. Our target languages were Python, JavaScript, Lua and Bash, but (hopefully) it should be easy to apply to others.  </p>
 
 <h2>
 <a id="main-work" class="anchor" href="#main-work" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Main work</h2>
+
+<h3>
+<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Summary</h3>
+
+<ul>
+<li>Definition of Fixable class<br>
+</li>
+<li>Required information<br>
+</li>
+<li>Automatic instance derivation</li>
+<li>Functions needed</li>
+</ul>
+
+<h3>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Description</h3>
 
 <p>We define a class (Fixable) that will take some language construction and will fix it in a way that adds (some) variable coherence.</p>
 
@@ -73,12 +88,12 @@ no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2<
 
 <p>The state is simply a list of variable identifiers, and we use a monad transformer to wrap the state around Gen. Basically we will be handling the state transformer, and at the end of the fix process, we must evaluate the state.  </p>
 
-<p>We derive instances for this class using Template Haskell. The process for this is simple: we need to specify the type representing identifiers (could be simply String or a wrapper type), a list of constructors which will be variables "calls" (something like Var with an identifier), another list of constructors representing assignments (like a direct assignment or a for) and finally the type for which we want to derive the instance, lets call it T.  </p>
+<p>We derive instances for this class using Template Haskell. The process for this is simple: we need to specify the type representing identifiers (could be simply String or a wrapper type), a list of constructors which will be variables "calls" (something like Var with an identifier), another list of constructors representing assignments (like a direct assignment or a for) and finally the type for which we want to derive the instance, let's call it T.  </p>
 
-<p>When we have all this, we can extract some information from these types to form the skeleton of our instance (like class restrictions on the type parameters). Then, the interesting bit is building the body of fix. To do this, we start travelling through the different constructors of T, and consider 3 different situations (say C is the current constructor of T being analyzed):  </p>
+<p>When we have all this, we can extract some information from these types to form the skeleton of our instance (like class restrictions on the type parameters). Then, the interesting bit is building the body of the fix function. To do this, we start travelling through the different constructors of T, and consider 3 different situations (say C is the current constructor of T being analyzed):  </p>
 
 <ul>
-<li>if C is one of the constructors representing variables, we must make sure its identifier exists in the current state. If this is not the case, we have 2 situations: the state is empty, in which case we change the variable expression for a different one (it could be a constant, or simply an arbitrary expression), or we have some ids in the state, and then we take one of them randomly to replace the current one.<br>
+<li>if C is one of the constructors representing variables, we must make sure its identifier exists in the current state. If this is not the case, we have 2 situations: the state is empty, in which case we change the variable expression for a different one (it could be a constant, or simply an arbitrary expression); or we have some ids in the state, and then we take one of them randomly to replace the current one.<br>
 </li>
 <li>if C is an assignment constructor, we must apply fix to the expression(s) that will be assigned, and then we add the assignment id to the state (this has some flaws, more info below).<br>
 </li>
@@ -106,7 +121,7 @@ no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2<
 
 <p>Using Megadeth, we can get the instance derivation for an entire AST using just one line, since Megadeth can resolve type dependencies and will produce the instance for every type.  </p>
 
-<div class="highlight highlight-source-haskell"><pre>$(mkGranFix ''<span class="pl-ent">Ident</span> ['<span class="pl-ent">Var</span>] ['<span class="pl-ent">Assign</span>, '<span class="pl-ent">For</span>] ''<span class="pl-ent">Module</span>)</pre></div>
+<div class="highlight highlight-source-haskell"><pre>$(devFixLang ''<span class="pl-ent">Ident</span> ['<span class="pl-ent">Var</span>] ['<span class="pl-ent">Assign</span>, '<span class="pl-ent">For</span>] ''<span class="pl-ent">Module</span>)</pre></div>
 
 <p>After this, we must apply the fix somewhere. Currently this is manually done inside the Arbitrary instance for the top level type in the AST, using evalStateT to get rid of the state:  </p>
 
@@ -114,6 +129,8 @@ no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2<
     arbitrary = <span class="pl-k">do</span> a &lt;- sized go  
                    evalStateT (fix a) (initV <span class="pl-k">::</span> <span class="pl-en">StV</span> <span class="pl-en">Id</span>)  
                 <span class="pl-k">where</span> go n = ...  </pre></div>
+
+<p>As an example, the Python module with variable coherence can be found <a href="https://github.com/CIFASIS/QuickFuzz/blob/master/src/Python.hs">here</a>.  </p>
 
 <h2>
 <a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h2>
@@ -134,12 +151,15 @@ no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2<
 
 <p>We can see that now we reuse previously defined variables in new assignments.  </p>
 
-<p>We ran QuickFuzz over different implementations of Bash, Python, Lua and JavaScript. So far we have found:</p>
+<h3>
+<a id="testing" class="anchor" href="#testing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Testing</h3>
+
+<p>We ran QuickFuzz over different implementations of Bash, Python, Lua and JavaScript. So far we have found (after deduplicating the bugs using backtrace):</p>
 
 <ul>
 <li>A bug in the current version of Lua (there's a patch available).<br>
 </li>
-<li>A case where Python compilation takes a very long time (sometimes forever).</li>
+<li>A case where Python compilation takes a very long time (sometimes forever) <a href="http://bugs.python.org/issue27695">1</a>.</li>
 <li>Aprox. 20 bugs in bash (waiting for feedback).</li>
 <li>Aprox. 10 bugs in Busybox's implementation of bash (ash) (waiting for feedback).</li>
 </ul>
@@ -148,11 +168,11 @@ no <span class="pl-k">=</span> <span class="pl-k">-</span><span class="pl-c1">2<
 <a id="limitations" class="anchor" href="#limitations" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Limitations</h2>
 
 <ul>
-<li>We previously mentioned that the user has to define some auxiliary functions to make the derivation work. These functions are pretty easy to understand so it's (or should be) easy to do it, but it's somewhat annoying.<br>
+<li>We mentioned that the user has to define some auxiliary functions to make the derivation work. These functions are pretty easy to understand so it's (or should be) easy to do it, but it's somewhat annoying.<br>
 </li>
-<li>When we have assignments, there are two different situations to keep in mind: you can use the new variable in the "body" of the assignments (e.g. a for) or you can't (e.g. a normal assignment). Currently there is no way to distinguish these 2 cases, and every case is treated like it's of the second class. This could be easily fixed by separating assignments into two lists (or providing more information), but we decided to leave it as it ts for now.<br>
+<li>When we have assignments, there are two different situations to keep in mind: you can use the new variable in the "body" of the assignments (e.g. a for) or you can't (e.g. a normal assignment). Currently there is no way to distinguish these 2 cases, and every case is treated like it's of the second class. This could be easily fixed by separating assignments into two lists (or providing more information), but we decided to leave it as it is for now.<br>
 </li>
-<li>It takes some work to check and understand the target language's AST in order to identify correctly the information we need.<br>
+<li>It takes some work to check and understand the target language's AST in order to correctly identify the information we need.<br>
 </li>
 </ul>
 
